@@ -2,7 +2,7 @@
   "name": "pi-ext-aws-docs",
   "private": true,
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Pi extension: AWS documentation search/read/recommend tools",
   "scripts": {
     "check": "biome check --write --error-on-warnings . && tsc --noEmit"
