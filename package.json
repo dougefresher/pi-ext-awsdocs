@@ -1,0 +1,16 @@
+{
+  "name": "pi-ext-aws-docs",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Pi extension: AWS documentation search/read/recommend tools",
+  "scripts": {
+    "check": "biome check --write --error-on-warnings . && tsc --noEmit"
+  },
+  "devDependencies": {
+    "@mariozechner/pi-coding-agent": "0.68.0",
+    "@sinclair/typebox": "^0.34.49",
+    "@types/bun": "latest"
+  },
+  "module": "index.ts"
+}
