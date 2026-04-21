@@ -8,6 +8,7 @@
     "check": "biome check --write --error-on-warnings . && tsc --noEmit"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.4.12",
     "@changesets/cli": "^2.31.0",
     "@mariozechner/pi-coding-agent": "0.68.0",
     "@sinclair/typebox": "^0.34.49",
