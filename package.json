@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "version": "0.1.1",
+  "license": "MIT",
   "description": "Pi extension: AWS documentation search/read/recommend tools",
   "scripts": {
     "check": "biome check --write --error-on-warnings . && tsc --noEmit"
