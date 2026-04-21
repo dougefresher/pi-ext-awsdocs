@@ -15,11 +15,10 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-24.04-arm
-
     steps:
       - name: Create GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ vars.CHANGESETS_APP_ID }}
           private-key: ${{ secrets.CHANGESETS_KEY }}
