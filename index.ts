@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import type { ExtensionAPI } from '@mariozechner/pi-coding-agent';
-import { Type } from '@sinclair/typebox';
+import { Type } from 'typebox';
 
 const SEARCH_API_URL = 'https://proxy.search.docs.aws.com/search';
 const RECOMMENDATIONS_API_URL = 'https://contentrecs-api.docs.aws.amazon.com/v1/recommendations';
