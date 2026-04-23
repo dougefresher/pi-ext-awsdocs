@@ -6,14 +6,15 @@
   "license": "MIT",
   "description": "Pi extension: AWS documentation search/read/recommend tools",
   "scripts": {
-    "check": "biome check --write --error-on-warnings . && tsc --noEmit"
+    "check": "biome check --write --error-on-warnings . && tsc --noEmit",
+    "changeset": "changeset add --message"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.12",
     "@changesets/cli": "^2.31.0",
-    "@mariozechner/pi-coding-agent": "0.68.0",
-    "@sinclair/typebox": "^0.34.49",
-    "@types/bun": "latest"
+    "@mariozechner/pi-coding-agent": "0.69.0",
+    "@types/bun": "latest",
+    "typebox": "^1.1.0"
   },
   "module": "index.ts"
 }
