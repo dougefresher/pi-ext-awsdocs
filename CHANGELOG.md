@@ -1,5 +1,11 @@
 # pi-ext-aws-docs
 
+## 0.1.3
+
+### Patch Changes
+
+- b307847: migrate to typebox
+
 ## 0.1.2
 
 ### Patch Changes
