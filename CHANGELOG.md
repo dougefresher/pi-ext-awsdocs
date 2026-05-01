@@ -1,5 +1,11 @@
 # pi-ext-aws-docs
 
+## 0.1.4
+
+### Patch Changes
+
+- a60f9a1: dep upgrade
+
 ## 0.1.3
 
 ### Patch Changes
