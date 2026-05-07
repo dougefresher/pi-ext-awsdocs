@@ -1,0 +1,8 @@
+steps:
+  - label: ":bun: pi-ext-aws-docs check"
+    agents:
+      queue: "default"
+    image: "ghcr.io/carteramesh/docker/ubuntu:latest"
+    commands:
+      - bun install --frozen-lockfile
+      - bun run check
