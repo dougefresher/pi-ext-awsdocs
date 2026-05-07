@@ -23,6 +23,7 @@
     "@changesets/cli": "^2.31.0",
     "@mariozechner/pi-coding-agent": "latest",
     "@types/bun": "latest",
+    "typescript": "^6.0.3",
     "typebox": "^1.1.37"
   },
   "module": "index.ts"
