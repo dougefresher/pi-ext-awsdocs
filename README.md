@@ -1,4 +1,6 @@
-# aws-docs pi extension (v1)
+# AWS Docs PI Extension
+
+Adapted by [aws-labs](https://github.com/awslabs/mcp)
 
 Pi extension that provides AWS documentation tools:
 
@@ -9,7 +11,7 @@ Pi extension that provides AWS documentation tools:
 
 This v1 intentionally uses a Python helper for HTML->Markdown and section extraction to mirror AWS MCP behavior closely.
 
-## Runtime requirements
+## Runtime Requirements
 
 - `python3`
 - Python modules:
@@ -22,7 +24,11 @@ This v1 intentionally uses a Python helper for HTML->Markdown and section extrac
 sudo pacman -S python-beautifulsoup4 python-markdownify
 ```
 
-## Environment variables
+```bash
+paru pi-ext-aws-docs
+```
+
+## Environment Variables
 
 - `AWS_DOCUMENTATION_PARTITION=aws|aws-cn` (default: `aws`)
 - `MCP_USER_AGENT=...` override HTTP User-Agent

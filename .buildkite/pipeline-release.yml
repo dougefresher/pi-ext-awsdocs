@@ -1,0 +1,7 @@
+steps:
+  - label: ":rocket: release smoke"
+    agents:
+      queue: "releases"
+    image: "ghcr.io/carteramesh/docker/ubuntu:latest"
+    commands:
+      - ./.buildkite/scripts/release-smoke.sh
