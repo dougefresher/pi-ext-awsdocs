@@ -11,6 +11,30 @@ Pi extension that provides AWS documentation tools:
 
 This v1 intentionally uses a Python helper for HTML->Markdown and section extraction to mirror AWS MCP behavior closely.
 
+## Install
+
+### Option 1: Install as a pi package from git
+
+```bash
+pi install git:github.com/dougefresher/pi-ext-awsdocs
+```
+
+Or add it to `~/.pi/agent/settings.json`:
+
+```json
+{
+  "packages": [
+    "git:github.com/dougefresher/pi-ext-awsdocs"
+  ]
+}
+```
+
+### Option 2: Arch Linux (AUR)
+
+```bash
+paru pi-ext-aws-docs
+```
+
 ## Runtime Requirements
 
 - `python3`
@@ -22,10 +46,6 @@ This v1 intentionally uses a Python helper for HTML->Markdown and section extrac
 
 ```bash
 sudo pacman -S python-beautifulsoup4 python-markdownify
-```
-
-```bash
-paru pi-ext-aws-docs
 ```
 
 ## Environment Variables
