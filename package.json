@@ -23,7 +23,8 @@
     "@changesets/cli": "^2.31.0",
     "@earendil-works/pi-coding-agent": "latest",
     "@types/bun": "latest",
-    "typebox": "^1.1.38"
+    "typebox": "^1.1.38",
+    "typescript": "^6.0.3"
   },
   "module": "index.ts",
   "trustedDependencies": [
