@@ -1,5 +1,11 @@
 # pi-ext-aws-docs
 
+## 1.0.0
+
+### Major Changes
+
+- 7e5470b: earendil
+
 ## 0.1.4
 
 ### Patch Changes
