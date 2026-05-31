@@ -1,5 +1,11 @@
 # pi-ext-aws-docs
 
+## 1.0.1
+
+### Patch Changes
+
+- 7d2d0ba: update dependencies
+
 ## 1.0.0
 
 ### Major Changes
