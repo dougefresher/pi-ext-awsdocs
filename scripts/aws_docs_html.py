@@ -227,6 +227,9 @@ def main() -> None:
 
             filtered_html = extract_sections_from_html(html, section_titles)
             markdown = extract_content_from_html(filtered_html)
+            if markdown.startswith("<e>") and markdown.endswith("</e>"):
+                _err(markdown[3:-4])
+                return
             _ok(markdown=markdown)
             return
 

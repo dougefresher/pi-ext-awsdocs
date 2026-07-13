@@ -14,6 +14,8 @@ const DEFAULT_USER_AGENT = `${BASE_USER_AGENT} PiAWSDocs/0.1.0`;
 const PYTHON_BIN = process.env.AWS_DOCS_PYTHON_BIN ?? 'python3';
 const PYTHON_HELPER_PATH = fileURLToPath(new URL('./scripts/aws_docs_html.py', import.meta.url));
 
+const REQUEST_TIMEOUT_MS = 30_000;
+
 const SEARCH_TERM_DOMAIN_MODIFIERS = [
   {
     terms: ['neuron', 'neuron sdk'],
@@ -22,24 +24,68 @@ const SEARCH_TERM_DOMAIN_MODIFIERS = [
   },
 ] as const;
 
+type AdditionalUrl = {
+  url: string;
+  section_title?: string;
+  section_anchor?: string;
+};
+
+type SearchResultMetadata = {
+  additional_urls?: AdditionalUrl[];
+};
+
+type DiscoveredService = {
+  name: string;
+  description?: string;
+};
+
+type RelatedTaskUrl = {
+  url_name: string;
+  url_description?: string;
+};
+
+type RelatedTask = {
+  name: string;
+  description?: string;
+  urls?: RelatedTaskUrl[];
+};
+
+type Relationship = {
+  relation?: string;
+  to?: string;
+  to_description?: string;
+  from?: string;
+};
+
+type ResponseMetadata = {
+  discovered_services?: DiscoveredService[];
+  related_tasks?: RelatedTask[];
+  relationships?: Relationship[];
+};
+
 type SearchResult = {
   rank_order: number;
   url: string;
   title: string;
   context?: string;
   sections?: string[];
+  recommended_sections?: string[];
+  metadata?: SearchResultMetadata;
 };
 
 type SearchResponse = {
   search_results: SearchResult[];
   facets?: { product_types?: string[]; guide_types?: string[] };
   query_id: string;
+  metadata?: ResponseMetadata;
 };
 
 type SearchApiMetadata = {
   seo_abstract?: string;
   abstract?: string;
   sections?: unknown;
+  recommended_sections?: unknown;
+  additional_urls?: unknown;
 };
 
 type SearchApiTextExcerptSuggestion = {
@@ -58,6 +104,7 @@ type SearchApiResponse = {
   queryId?: string;
   facets?: Record<string, unknown>;
   suggestions?: SearchApiSuggestion[];
+  metadata?: unknown;
 };
 
 type SearchApiRequest = {
@@ -144,6 +191,191 @@ function parseRecommendationResults(data: RecommendationApiResponse): Recommenda
   }
 
   return results;
+}
+
+function toNonEmptyStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const arr = value.filter((v): v is string => typeof v === 'string' && v.length > 0);
+  return arr.length > 0 ? arr : undefined;
+}
+
+function parseAdditionalUrls(value: unknown): AdditionalUrl[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const items: AdditionalUrl[] = [];
+  for (const item of value) {
+    if (item && typeof item === 'object' && typeof (item as Record<string, unknown>).url === 'string') {
+      const it = item as Record<string, unknown>;
+      items.push({
+        url: it.url as string,
+        section_title: typeof it.section_title === 'string' ? it.section_title : undefined,
+        section_anchor: typeof it.section_anchor === 'string' ? it.section_anchor : undefined,
+      });
+    }
+  }
+  return items.length > 0 ? items : undefined;
+}
+
+function parseSearchResultMetadata(metadata: SearchApiMetadata | undefined): SearchResultMetadata | undefined {
+  const additionalUrls = parseAdditionalUrls(metadata?.additional_urls);
+  return additionalUrls ? { additional_urls: additionalUrls } : undefined;
+}
+
+function parseDiscoveredServices(value: unknown): DiscoveredService[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const items: DiscoveredService[] = [];
+  for (const item of value) {
+    if (item && typeof item === 'object' && typeof (item as Record<string, unknown>).name === 'string') {
+      const it = item as Record<string, unknown>;
+      items.push({
+        name: it.name as string,
+        description: typeof it.description === 'string' ? it.description : undefined,
+      });
+    }
+  }
+  return items.length > 0 ? items : undefined;
+}
+
+function parseRelatedTaskUrls(value: unknown): RelatedTaskUrl[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const items: RelatedTaskUrl[] = [];
+  for (const item of value) {
+    if (item && typeof item === 'object' && typeof (item as Record<string, unknown>).url_name === 'string') {
+      const it = item as Record<string, unknown>;
+      items.push({
+        url_name: it.url_name as string,
+        url_description: typeof it.url_description === 'string' ? it.url_description : undefined,
+      });
+    }
+  }
+  return items.length > 0 ? items : undefined;
+}
+
+function parseRelatedTasks(value: unknown): RelatedTask[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const items: RelatedTask[] = [];
+  for (const item of value) {
+    if (item && typeof item === 'object' && typeof (item as Record<string, unknown>).name === 'string') {
+      const it = item as Record<string, unknown>;
+      items.push({
+        name: it.name as string,
+        description: typeof it.description === 'string' ? it.description : undefined,
+        urls: parseRelatedTaskUrls(it.urls),
+      });
+    }
+  }
+  return items.length > 0 ? items : undefined;
+}
+
+function parseRelationships(value: unknown): Relationship[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const items: Relationship[] = [];
+  for (const item of value) {
+    if (item && typeof item === 'object') {
+      const it = item as Record<string, unknown>;
+      items.push({
+        relation: typeof it.relation === 'string' ? it.relation : undefined,
+        to: typeof it.to === 'string' ? it.to : undefined,
+        to_description: typeof it.to_description === 'string' ? it.to_description : undefined,
+        from: typeof it.from === 'string' ? it.from : undefined,
+      });
+    }
+  }
+  return items.length > 0 ? items : undefined;
+}
+
+function parseResponseMetadata(metadata: unknown): ResponseMetadata | undefined {
+  if (!metadata || typeof metadata !== 'object') return undefined;
+  const m = metadata as Record<string, unknown>;
+  const result: ResponseMetadata = {
+    discovered_services: parseDiscoveredServices(m.discovered_services),
+    related_tasks: parseRelatedTasks(m.related_tasks),
+    relationships: parseRelationships(m.relationships),
+  };
+  return result.discovered_services || result.related_tasks || result.relationships ? result : undefined;
+}
+
+function toMarkdownMirrorUrl(urlStr: string): string {
+  return urlStr.replace(/\.html$/, '.md');
+}
+
+function isMarkdownResponse(response: Response): boolean {
+  return response.ok && (response.headers.get('content-type') ?? '').toLowerCase().includes('text/markdown');
+}
+
+function normalizeHeadingText(text: string): string {
+  return text.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function extractMarkdownSections(markdown: string, sectionTitles: string[]): { content: string } | { error: string } {
+  const normalizedTitles = new Map<string, string>();
+  for (const title of sectionTitles) {
+    normalizedTitles.set(normalizeHeadingText(title), title.trim());
+  }
+
+  const lines = markdown.split('\n');
+  const availableSections: string[] = [];
+  const matchedBlocks: string[] = [];
+  const foundSections = new Set<string>();
+
+  let inFence = false;
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i] ?? '';
+    if (line.trim().startsWith('```')) {
+      inFence = !inFence;
+      i++;
+      continue;
+    }
+    if (!inFence && /^##\s+/.test(line)) {
+      const headingText = line.replace(/^##\s+/, '').trim();
+      availableSections.push(headingText);
+      const normalized = normalizeHeadingText(headingText);
+      const originalTitle = normalizedTitles.get(normalized);
+
+      if (originalTitle !== undefined) {
+        const blockLines = [line];
+        let j = i + 1;
+        let blockFence = false;
+        while (j < lines.length) {
+          const l = lines[j] ?? '';
+          if (l.trim().startsWith('```')) {
+            blockFence = !blockFence;
+            blockLines.push(l);
+            j++;
+            continue;
+          }
+          if (!blockFence && (/^#\s+/.test(l) || /^##\s+/.test(l))) break;
+          blockLines.push(l);
+          j++;
+        }
+        matchedBlocks.push(blockLines.join('\n'));
+        foundSections.add(originalTitle);
+        i = j;
+        continue;
+      }
+    }
+    i++;
+  }
+
+  if (foundSections.size === 0) {
+    const sectionList = sectionTitles.map((t) => `"${t}"`).join(', ');
+    if (availableSections.length > 0) {
+      const availableList = availableSections.map((s) => `"${s}"`).join(', ');
+      return {
+        error: `No matching sections were found: ${sectionList}. Available sections: ${availableList}. Please retry with one or more of these sections or use aws_docs_read instead.`,
+      };
+    }
+    return { error: 'This document does not contain subsections. Please use aws_docs_read instead.' };
+  }
+
+  let content = matchedBlocks.join('\n\n');
+  if (foundSections.size < sectionTitles.length) {
+    const missing = sectionTitles.map((t) => t.trim()).filter((t) => !foundSections.has(t));
+    const missingList = missing.map((t) => `"${t}"`).join(', ');
+    content += `\n\n> **Note**: The following requested sections were not found: ${missingList}`;
+  }
+
+  return { content };
 }
 
 function isAllowedAwsDocsUrl(url: string): boolean {
@@ -330,15 +562,22 @@ export default function awsDocsExtension(pi: ExtensionAPI) {
       const intent = params.search_intent?.trim();
       if (intent) url += `&search_intent=${encodeURIComponent(intent.replace(/\s+/g, ' '))}`;
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'user-agent': DEFAULT_USER_AGENT,
-          'x-mcp-session-id': sessionId,
-        },
-        body: JSON.stringify(body),
-      });
+      let response: Response;
+      try {
+        response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'user-agent': DEFAULT_USER_AGENT,
+            'x-mcp-session-id': sessionId,
+          },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+      } catch (error) {
+        const msg = `Error searching AWS docs: ${error instanceof Error ? error.message : String(error)}`;
+        return { content: [{ type: 'text', text: msg }], isError: true, details: undefined };
+      }
 
       if (!response.ok) {
         const msg = `Error searching AWS docs - status code ${response.status}`;
@@ -363,17 +602,16 @@ export default function awsDocsExtension(pi: ExtensionAPI) {
         const metadata = text.metadata;
         const context =
           metadata?.seo_abstract ?? metadata?.abstract ?? text.summary ?? text.suggestionBody ?? undefined;
-        const sectionsRaw = metadata?.sections;
-        const sections = Array.isArray(sectionsRaw)
-          ? sectionsRaw.filter((s): s is string => typeof s === 'string' && s.length > 0)
-          : undefined;
+        const sections = toNonEmptyStringArray(metadata?.sections);
 
         searchResults.push({
           rank_order: index + 1,
           url: text.link ?? '',
           title: text.title ?? '',
           context,
-          sections: sections && sections.length > 0 ? sections : undefined,
+          sections,
+          recommended_sections: toNonEmptyStringArray(metadata?.recommended_sections),
+          metadata: parseSearchResultMetadata(metadata),
         });
       }
 
@@ -381,6 +619,7 @@ export default function awsDocsExtension(pi: ExtensionAPI) {
         search_results: searchResults,
         facets: Object.keys(facets).length > 0 ? facets : undefined,
         query_id: data.queryId ?? '',
+        metadata: parseResponseMetadata(data.metadata),
       };
       cacheSearch(result);
 
@@ -428,13 +667,41 @@ export default function awsDocsExtension(pi: ExtensionAPI) {
       const queryId = lookupQueryId(urlStr);
       if (queryId) requestUrl += `&query_id=${queryId}`;
 
-      const response = await fetch(requestUrl, {
-        headers: {
-          'user-agent': DEFAULT_USER_AGENT,
-          'x-mcp-session-id': sessionId,
-        },
-        redirect: 'follow',
-      });
+      const mdRequestUrl = `${toMarkdownMirrorUrl(urlStr)}?session=${sessionId}${queryId ? `&query_id=${queryId}` : ''}`;
+      let mdResponse: Response | undefined;
+      try {
+        mdResponse = await fetch(mdRequestUrl, {
+          headers: {
+            'user-agent': DEFAULT_USER_AGENT,
+            'x-mcp-session-id': sessionId,
+          },
+          redirect: 'follow',
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+      } catch {
+        mdResponse = undefined;
+      }
+
+      if (mdResponse && isMarkdownResponse(mdResponse)) {
+        const markdown = await mdResponse.text();
+        const result = formatDocumentationResult(urlStr, markdown, startIndex, maxLength);
+        return { content: [{ type: 'text', text: result }], details: undefined };
+      }
+
+      let response: Response;
+      try {
+        response = await fetch(requestUrl, {
+          headers: {
+            'user-agent': DEFAULT_USER_AGENT,
+            'x-mcp-session-id': sessionId,
+          },
+          redirect: 'follow',
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+      } catch (error) {
+        const msg = `Failed to fetch ${urlStr}: ${error instanceof Error ? error.message : String(error)}`;
+        return { content: [{ type: 'text', text: msg }], isError: true, details: undefined };
+      }
 
       if (!response.ok) {
         const msg = `Failed to fetch ${urlStr} - status code ${response.status}`;
@@ -492,14 +759,45 @@ export default function awsDocsExtension(pi: ExtensionAPI) {
         };
       }
 
-      let requestUrl = `${urlStr}?session=${sessionId}`;
       const queryId = lookupQueryId(urlStr);
+
+      const mdRequestUrl = `${toMarkdownMirrorUrl(urlStr)}?session=${sessionId}${queryId ? `&query_id=${queryId}` : ''}`;
+      let mdResponse: Response | undefined;
+      try {
+        mdResponse = await fetch(mdRequestUrl, {
+          headers: { 'user-agent': DEFAULT_USER_AGENT, 'x-mcp-session-id': sessionId },
+          redirect: 'follow',
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+      } catch {
+        mdResponse = undefined;
+      }
+
+      if (mdResponse && isMarkdownResponse(mdResponse)) {
+        const markdown = await mdResponse.text();
+        const extracted = extractMarkdownSections(markdown, params.section_titles);
+        if ('error' in extracted) {
+          return { content: [{ type: 'text', text: extracted.error }], isError: true, details: undefined };
+        }
+        return { content: [{ type: 'text', text: extracted.content }], details: undefined };
+      }
+
+      let requestUrl = `${urlStr}?session=${sessionId}`;
+      const sectionsParam = params.section_titles.map((title) => encodeURIComponent(title.trim())).join(',');
+      requestUrl += `&sections=${sectionsParam}`;
       if (queryId) requestUrl += `&query_id=${queryId}`;
 
-      const response = await fetch(requestUrl, {
-        headers: { 'user-agent': DEFAULT_USER_AGENT, 'x-mcp-session-id': sessionId },
-        redirect: 'follow',
-      });
+      let response: Response;
+      try {
+        response = await fetch(requestUrl, {
+          headers: { 'user-agent': DEFAULT_USER_AGENT, 'x-mcp-session-id': sessionId },
+          redirect: 'follow',
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+      } catch (error) {
+        const msg = `Failed to fetch ${urlStr}: ${error instanceof Error ? error.message : String(error)}`;
+        return { content: [{ type: 'text', text: msg }], isError: true, details: undefined };
+      }
       if (!response.ok) {
         const msg = `Failed to fetch ${urlStr} - status code ${response.status}`;
         return { content: [{ type: 'text', text: msg }], isError: true, details: undefined };
@@ -552,9 +850,16 @@ export default function awsDocsExtension(pi: ExtensionAPI) {
     async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
       const urlStr = String(params.url);
       const requestUrl = `${RECOMMENDATIONS_API_URL}?path=${encodeURIComponent(urlStr)}&session=${sessionId}`;
-      const response = await fetch(requestUrl, {
-        headers: { 'user-agent': DEFAULT_USER_AGENT },
-      });
+      let response: Response;
+      try {
+        response = await fetch(requestUrl, {
+          headers: { 'user-agent': DEFAULT_USER_AGENT },
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+      } catch (error) {
+        const msg = `Error getting recommendations: ${error instanceof Error ? error.message : String(error)}`;
+        return { content: [{ type: 'text', text: msg }], isError: true, details: undefined };
+      }
       if (!response.ok) {
         const msg = `Error getting recommendations - status code ${response.status}`;
         return { content: [{ type: 'text', text: msg }], isError: true, details: undefined };
