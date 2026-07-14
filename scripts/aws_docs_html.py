@@ -171,7 +171,9 @@ def extract_sections_from_html(html: str, section_titles: list[str]) -> str:
     if not found_sections:
         section_list = ", ".join(f'"{title}"' for title in section_titles)
         if available_level2_sections:
-            available_list = ", ".join(f'"{section}"' for section in available_level2_sections)
+            available_list = ", ".join(
+                f'"{section}"' for section in available_level2_sections
+            )
             raise ValueError(
                 f"No matching sections were found: {section_list}. "
                 f"Available sections: {available_list}. "
@@ -185,7 +187,9 @@ def extract_sections_from_html(html: str, section_titles: list[str]) -> str:
 
     if len(found_sections) < len(section_titles):
         missing_sections = [
-            title.strip() for title in section_titles if title.strip() not in found_sections
+            title.strip()
+            for title in section_titles
+            if title.strip() not in found_sections
         ]
         missing_list = ", ".join(f'"{title}"' for title in missing_sections)
         result_html += (
@@ -213,6 +217,10 @@ def main() -> None:
         if mode == "read":
             html = data.get("html", "")
             markdown = extract_content_from_html(str(html))
+            if markdown.startswith("<e>") and markdown.endswith("</e>"):
+                _err(markdown[3:-4])
+                return
+            _ok(markdown=markdown)
             _ok(markdown=markdown)
             return
 
